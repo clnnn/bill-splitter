@@ -1,0 +1,780 @@
+<title>Splitr Core Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--
+  PROTOTYPE, throw away. Answers the wayfinder ticket "What do the core screens look like?"
+  (clnnn/bill-splitter#22). Three variants of the group page and add-expense step, switchable
+  via ?variant=a|b|c or #variant-a|b|c and the floating bar. Auth, email, invite and home screens
+  are shared. Assumption: no app is scaffolded yet, so this is one standalone page rather than
+  variants on a React Router route. All state is in memory; reload resets it.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: prototype chrome (index | phone | state) around one phone-sized app frame; switcher pill fixed at the bottom. */
+:root {
+  --bg: #eceff3; --panel: #ffffff; --ink: #17212b; --muted: #596777; --line: #d5dce3;
+  --app-bg: #ffffff; --app-soft: #f2f5f4; --app-line: #e1e7e5;
+  --accent: #0b6e56; --accent-soft: #dcefe8; --accent-ink: #ffffff;
+  --pos: #0b6e56; --neg: #b03a2e; --zero: #596777;
+  --chrome: #17212b; --chrome-ink: #f3f5f7; --note: #fff5d6; --note-ink: #5c4500;
+  --mail-bg: #f6f6f3;
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1317; --panel: #161d23; --ink: #e5eaee; --muted: #93a1ae; --line: #29333c;
+  --app-bg: #12181d; --app-soft: #1a2329; --app-line: #26313a;
+  --accent: #3fc29c; --accent-soft: #163a30; --accent-ink: #052119;
+  --pos: #4fcda7; --neg: #f08a80; --zero: #93a1ae;
+  --chrome: #e5eaee; --chrome-ink: #0e1317; --note: #3a3115; --note-ink: #f3dc9a;
+  --mail-bg: #171c20; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1317; --panel: #161d23; --ink: #e5eaee; --muted: #93a1ae; --line: #29333c;
+  --app-bg: #12181d; --app-soft: #1a2329; --app-line: #26313a;
+  --accent: #3fc29c; --accent-soft: #163a30; --accent-ink: #052119;
+  --pos: #4fcda7; --neg: #f08a80; --zero: #93a1ae;
+  --chrome: #e5eaee; --chrome-ink: #0e1317; --note: #3a3115; --note-ink: #f3dc9a;
+  --mail-bg: #171c20; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.page { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 96px; display: grid; gap: 20px; }
+.intro { display: grid; gap: 6px; max-width: 72ch; }
+.eyebrow { font: 600 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.intro h1 { font: 600 26px/1.15 var(--f-display); margin: 0; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); }
+.stage { display: grid; grid-template-columns: minmax(200px, 250px) auto minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1000px) { .stage { grid-template-columns: minmax(0, 1fr); } .device { order: -1; justify-self: center; width: 100%; max-width: 390px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.panel h2 { font: 600 12px/1 var(--f-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.idx { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.idx button { width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px; border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; }
+.idx button:hover { background: var(--app-soft); }
+.idx button[aria-current="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.idx .grp { font: 600 11px/1 var(--f-body); color: var(--muted); padding: 10px 8px 4px; letter-spacing: .05em; text-transform: uppercase; }
+.scen { display: grid; gap: 6px; }
+.scen button { text-align: left; font: inherit; padding: 7px 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
+.scen button:hover { border-color: var(--muted); }
+pre.state { margin: 0; font: 12px/1.5 var(--f-mono); white-space: pre-wrap; word-break: break-word; color: var(--ink); background: var(--app-soft); border-radius: 6px; padding: 10px; max-height: 360px; overflow: auto; }
+.qs { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.qs li { color: var(--ink); }
+.qs b { font-weight: 600; }
+
+/* Phone frame */
+.device { position: relative; }
+.phone { width: 375px; max-width: 100%; height: min(760px, 82vh); border: 10px solid var(--chrome); border-radius: 38px; background: var(--app-bg); overflow: hidden; position: relative; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+@media (max-width: 1000px) { .phone { width: 100%; } }
+.scroller { height: 100%; overflow-y: auto; overflow-x: hidden; position: relative; }
+.toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--chrome); color: var(--chrome-ink); padding: 8px 14px; border-radius: 999px; font-size: 13px; z-index: 30; pointer-events: none; }
+
+/* App: the screens being judged */
+.scr { min-height: 100%; display: flex; flex-direction: column; color: var(--ink); }
+.appbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 14px 8px; position: sticky; top: 0; background: var(--app-bg); z-index: 5; }
+.appbar .t { font: 600 15px/1.2 var(--f-display); text-align: center; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lnk { background: none; border: 0; color: var(--accent); font: 500 14px/1 var(--f-body); padding: 6px 4px; cursor: pointer; }
+.lnk.inline { padding: 0; font-size: inherit; text-decoration: underline; }
+.body { padding: 8px 20px 24px; display: grid; gap: 16px; align-content: start; flex: 1; }
+.brand { font: 700 20px/1 var(--f-display); color: var(--accent); letter-spacing: -.01em; }
+.auth .body { padding-top: 48px; gap: 18px; }
+.app h1, .scr h1 { font: 600 26px/1.15 var(--f-display); margin: 0; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); font-size: 15px; }
+.fine { margin: 0; color: var(--muted); font-size: 13px; }
+form { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; font-weight: 500; }
+.field input, .field select { font: 400 16px/1.2 var(--f-body); padding: 12px; border: 1px solid var(--app-line); border-radius: 10px; background: var(--app-bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.field input:focus, .field select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.help { font-weight: 400; color: var(--muted); font-size: 13px; }
+.err { color: var(--neg); font-size: 13px; margin: 0; }
+.btn { font: 600 16px/1 var(--f-body); padding: 15px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; width: 100%; }
+.btn.ghost { background: var(--app-soft); color: var(--ink); }
+.btn.small { width: auto; padding: 9px 14px; font-size: 14px; border-radius: 9px; }
+.foot { position: sticky; bottom: 0; padding: 12px 20px 18px; background: linear-gradient(to bottom, transparent, var(--app-bg) 30%); }
+.proto { background: var(--note); color: var(--note-ink); border-radius: 10px; padding: 10px 12px; font-size: 13px; display: grid; gap: 8px; }
+.proto button { justify-self: start; }
+.sec { display: grid; gap: 8px; }
+.sec h2 { font: 600 12px/1 var(--f-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.rows { display: grid; border-top: 1px solid var(--app-line); }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--app-line); }
+.row .l { min-width: 0; }
+.row .l small { display: block; color: var(--muted); font-size: 12px; }
+.row .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pos { color: var(--pos); } .neg { color: var(--neg); } .zero { color: var(--zero); }
+.card { background: var(--app-soft); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.card.hot { background: var(--accent-soft); }
+.linkbox { display: flex; gap: 8px; align-items: center; }
+.linkbox code { font: 13px/1.3 var(--f-mono); background: var(--app-bg); border: 1px solid var(--app-line); padding: 9px 10px; border-radius: 8px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.exp summary { list-style: none; cursor: pointer; }
+details.exp summary::-webkit-details-marker { display: none; }
+details.exp .shares { padding: 0 0 10px; color: var(--muted); font-size: 13px; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.empty { color: var(--muted); text-align: center; padding: 18px 8px; font-size: 14px; }
+.menu { position: absolute; right: 12px; top: 46px; background: var(--app-bg); border: 1px solid var(--app-line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.15); z-index: 10; display: grid; padding: 4px; }
+.menu button { background: none; border: 0; padding: 10px 14px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; border-radius: 6px; }
+.menu .who { padding: 8px 14px; color: var(--muted); font-size: 12px; }
+.amount-in { display: flex; align-items: center; border: 1px solid var(--app-line); border-radius: 10px; overflow: hidden; }
+.amount-in span { padding: 0 12px; color: var(--muted); font: 500 15px/1 var(--f-mono); }
+.amount-in input { border: 0 !important; border-radius: 0 !important; font-size: 22px !important; font-variant-numeric: tabular-nums; }
+.choices { display: grid; gap: 0; border-top: 1px solid var(--app-line); }
+.choices label { display: flex; gap: 10px; align-items: center; padding: 11px 2px; border-bottom: 1px solid var(--app-line); font-weight: 400; cursor: pointer; }
+.choices input { accent-color: var(--accent); width: 18px; height: 18px; }
+.preview { background: var(--app-soft); border-radius: 10px; padding: 12px; font-size: 13px; display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.preview .h { font-weight: 600; }
+.preview .line { display: flex; justify-content: space-between; }
+
+/* Variant B */
+.hero { padding: 6px 20px 18px; display: grid; gap: 4px; }
+.hero .k { color: var(--muted); font-size: 13px; }
+.hero .big { font: 600 34px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.hero .s { font-size: 15px; }
+.tabs { display: flex; border-bottom: 1px solid var(--app-line); padding: 0 12px; position: sticky; top: 44px; background: var(--app-bg); z-index: 4; }
+.tabs button { flex: 1; background: none; border: 0; padding: 12px 4px; font: 500 14px/1 var(--f-body); color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.fab { position: absolute; right: 18px; bottom: 22px; width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font: 400 30px/1 var(--f-body); box-shadow: 0 6px 18px rgba(0,0,0,.25); cursor: pointer; z-index: 6; }
+.sheet-wrap { position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: flex; align-items: flex-end; }
+.sheet { background: var(--app-bg); width: 100%; border-radius: 18px 18px 0 0; padding: 10px 20px 20px; display: grid; gap: 14px; max-height: 92%; overflow-y: auto; box-sizing: border-box; }
+.sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--app-line); justify-self: center; }
+.sheet h2 { font: 600 20px/1.2 var(--f-display); margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips label { display: inline-flex; }
+.chips input { position: absolute; opacity: 0; pointer-events: none; }
+.chips span { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--app-line); font-weight: 400; cursor: pointer; }
+.chips input:checked + span { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chips input:focus-visible + span { outline: 2px solid var(--accent); }
+
+/* Variant C */
+.c-scr { height: 100%; display: flex; flex-direction: column; }
+.c-head { display: flex; align-items: center; gap: 6px; padding: 12px 10px 8px; border-bottom: 1px solid var(--app-line); }
+.c-head .ttl { flex: 1; min-width: 0; background: none; border: 0; text-align: left; cursor: pointer; color: var(--ink); padding: 2px 4px; }
+.c-head .ttl b { display: block; font: 600 16px/1.2 var(--f-display); }
+.c-head .ttl small { color: var(--muted); font-size: 12px; }
+.strip { display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px; border-bottom: 1px solid var(--app-line); }
+.strip .chip { flex: none; padding: 6px 10px; border-radius: 999px; background: var(--app-soft); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.feed { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.sys { align-self: center; color: var(--muted); font-size: 12px; text-align: center; max-width: 85%; }
+.bub { max-width: 82%; background: var(--app-soft); border-radius: 14px 14px 14px 4px; padding: 9px 12px; align-self: flex-start; }
+.bub.me { align-self: flex-end; background: var(--accent-soft); border-radius: 14px 14px 4px 14px; }
+.bub .who { font-size: 12px; color: var(--muted); }
+.bub .amt { font: 600 17px/1.2 var(--f-display); font-variant-numeric: tabular-nums; }
+.bub .sh { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.composer { border-top: 1px solid var(--app-line); padding: 8px 10px 12px; display: grid; gap: 8px; background: var(--app-bg); }
+.composer .r1, .composer .r2 { display: flex; gap: 6px; align-items: center; }
+.composer input, .composer select { font: 400 15px/1.2 var(--f-body); padding: 10px; border: 1px solid var(--app-line); border-radius: 10px; background: var(--app-bg); color: var(--ink); min-width: 0; }
+.composer .cur { font: 500 13px/1 var(--f-mono); color: var(--muted); }
+.composer .a { width: 92px; font-variant-numeric: tabular-nums; }
+.composer .d { flex: 1; }
+.composer .r2 select { flex: 1; }
+.composer .pv { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Mail client */
+.mail { background: var(--mail-bg); min-height: 100%; }
+.mail-top { padding: 14px 12px 6px; }
+.mail-head { padding: 4px 18px 14px; display: grid; gap: 8px; border-bottom: 1px solid var(--app-line); }
+.mail-head h2 { font: 600 19px/1.25 var(--f-body); margin: 0; }
+.mail-head .meta { font-size: 13px; color: var(--muted); }
+.mail-head .meta b { color: var(--ink); }
+.mail-body { margin: 16px; padding: 22px 20px; background: var(--app-bg); border-radius: 10px; display: grid; gap: 14px; font-size: 15px; border: 1px solid var(--app-line); }
+.mail-body p { margin: 0; }
+.mail-body .mb-brand { font: 700 18px/1 var(--f-display); color: var(--accent); }
+.mail-body .mb-btn { display: inline-block; justify-self: start; background: var(--accent); color: var(--accent-ink); padding: 12px 20px; border-radius: 8px; font-weight: 600; border: 0; cursor: pointer; font-size: 15px; }
+.mail-body .url { font: 12px/1.4 var(--f-mono); word-break: break-all; color: var(--muted); }
+.mail details { margin: 0 16px 24px; font-size: 13px; }
+.mail pre { white-space: pre-wrap; font: 12px/1.5 var(--f-mono); background: var(--app-bg); border: 1px solid var(--app-line); padding: 12px; border-radius: 8px; }
+
+/* Variant switcher */
+.switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--chrome); color: var(--chrome-ink); border-radius: 999px; display: flex; align-items: center; gap: 4px; padding: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.3); z-index: 100; max-width: calc(100% - 32px); }
+.switcher button { background: none; border: 0; color: inherit; font: 600 18px/1 var(--f-body); width: 36px; height: 36px; border-radius: 50%; cursor: pointer; }
+.switcher button:hover { background: rgba(127,127,127,.25); }
+.switcher .lbl { font: 600 13px/1 var(--f-body); padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .18s ease-out; } @keyframes up { from { transform: translateY(30px); opacity: .6; } } }
+</style>
+
+<div class="page">
+  <header class="intro">
+    <span class="eyebrow">Prototype · throwaway · state lives in memory, reload resets</span>
+    <h1>What do the core screens look like?</h1>
+    <p>Phone-first screens for split-a-bill-equally. Click through the flow inside the phone, or jump to any screen from the list. Three variants of the group page and the add-expense step switch from the bar at the bottom (or the ← → keys). Sign-in, email, invite and home screens are the same in every variant.</p>
+  </header>
+  <div class="stage">
+    <aside class="panel" aria-label="Screens">
+      <h2>Screens</h2>
+      <ul class="idx" id="idx"></ul>
+      <h2>Act it out</h2>
+      <div class="scen">
+        <button type="button" data-act="scn-invite">Open Lisbon trip's invite link</button>
+        <button type="button" data-act="scn-signout">Sign out</button>
+        <button type="button" data-act="scn-dead">Open an expired sign-in link</button>
+        <button type="button" data-act="scn-reset">Start over, signed out, empty</button>
+      </div>
+    </aside>
+    <div class="device">
+      <div class="phone"><div class="scroller" id="phone"></div><div class="toast" id="toast" hidden></div></div>
+    </div>
+    <aside class="panel" aria-label="State and questions">
+      <h2>React to these</h2>
+      <ol class="qs">
+        <li><b>Group page:</b> which variant, or which parts of each?</li>
+        <li><b>Balance wording:</b> A says "owes / is owed / even", B shows signed amounts, C says "owes / gets back / is square".</li>
+        <li><b>Adding an expense:</b> a full page (A), a bottom sheet (B), or a composer under the ledger (C)?</li>
+        <li><b>Invite link:</b> after the first friend joins, it moves down (A), into People (B), or into the group's info (C). Is that findable enough?</li>
+        <li><b>Empty states:</b> one member puts the invite link first. No expenses shows one line. Right?</li>
+        <li><b>Description:</b> required here, up to 100 characters. Group name up to 50.</li>
+        <li><b>Sign-in email:</b> open it from "Check your email". Are the sender, subject and wording right, including the join version?</li>
+        <li><b>Confirm page:</b> shows the email address being signed in, and the group being joined.</li>
+      </ol>
+      <h2>State</h2>
+      <pre class="state" id="state"></pre>
+    </aside>
+  </div>
+</div>
+<div class="switcher" role="group" aria-label="Prototype variant switcher">
+  <button type="button" data-act="v-prev" aria-label="Previous variant">‹</button>
+  <span class="lbl" id="vlabel"></span>
+  <button type="button" data-act="v-next" aria-label="Next variant">›</button>
+</div>
+
+<script>
+(() => {
+// ---------- money (per ADR 0003; a small subset of currencies for the prototype) ----------
+const CUR = { EUR: 2, USD: 2, GBP: 2, RON: 2, JPY: 0, KWD: 3 };
+let curName = c => c;
+try { const dn = new Intl.DisplayNames(['en'], { type: 'currency' }); curName = c => dn.of(c); } catch (e) {}
+const nf = {};
+function fmt(minor, cur, signed) {
+  const e = CUR[cur];
+  const k = cur + (signed ? 's' : '');
+  nf[k] = nf[k] || new Intl.NumberFormat('en', { style: 'currency', currency: cur, currencyDisplay: 'code', minimumFractionDigits: e, maximumFractionDigits: e, signDisplay: signed ? 'exceptZero' : 'auto' });
+  return nf[k].format(minor / 10 ** e).replace(/ /g, ' ').replace('-', '−');
+}
+function parseAmount(raw, cur) {
+  const s = String(raw || '').trim();
+  if (!s) return { error: 'Enter an amount.' };
+  const e = CUR[cur];
+  const m = /^(\d+)(?:[.,](\d+))?$/.exec(s);
+  if (!m) return { error: 'Use digits and one . or , for decimals, like 12.50.' };
+  const frac = m[2] || '';
+  if (frac.length > e) return { error: e === 0 ? `${cur} amounts have no decimals.` : `${cur} amounts have at most ${e} decimals.` };
+  const minor = Number(m[1]) * 10 ** e + (e ? Number((frac + '000').slice(0, e)) : 0);
+  if (minor < 1) return { error: 'Enter an amount greater than zero.' };
+  if (minor > 1e11) return { error: 'That amount is too large.' };
+  return { minor };
+}
+function equalSplit(amount, payer, members) {
+  const n = members.length, base = Math.floor(amount / n), r = amount % n;
+  const shares = {}; members.forEach(u => shares[u] = base);
+  const order = [payer, ...members.filter(u => u !== payer)];
+  for (let i = 0; i < r; i++) shares[order[i]]++;
+  return shares;
+}
+
+// ---------- in-memory state ----------
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rid = n => { const a = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < n; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
+let seq = 1;
+const fresh = () => ({ session: null, users: [], groups: [], expenses: [], links: [], screen: 'signin', p: {}, ui: {}, sample: false });
+let S = fresh();
+
+const user = id => S.users.find(u => u.id === id);
+const me = () => S.session && user(S.session);
+const group = id => S.groups.find(g => g.id === id);
+const memberIds = g => g.members.map(m => m.uid);
+const nameOf = uid => (user(uid) || {}).name || '(no name yet)';
+function ensureUser(email, name) {
+  let u = S.users.find(x => x.email === email);
+  if (!u) { u = { id: 'u' + seq++, email, name: name || '' }; S.users.push(u); }
+  return u;
+}
+function createGroup(name, cur, creator, at) {
+  const g = { id: 'g' + seq++, name, currency: cur, token: rid(22), members: [{ uid: creator, at: at || new Date() }], createdAt: at || new Date() };
+  S.groups.push(g); return g;
+}
+function join(g, uid, at) { if (!memberIds(g).includes(uid)) g.members.push({ uid, at: at || new Date() }); }
+function recordExpense(g, payer, amount, description, by, at) {
+  const shares = equalSplit(amount, payer, memberIds(g));
+  const e = { id: 'e' + seq++, groupId: g.id, payer, amount, currency: g.currency, description, shares, recordedBy: by, at: at || new Date() };
+  S.expenses.push(e); return e;
+}
+const ledger = g => S.expenses.filter(e => e.groupId === g.id);
+function balances(g) {
+  const b = {}; memberIds(g).forEach(u => b[u] = 0);
+  ledger(g).forEach(e => { b[e.payer] += e.amount; for (const u in e.shares) b[u] -= e.shares[u]; });
+  return b;
+}
+function newLink(email, dest, expired) {
+  const l = { token: rid(32), email, dest: dest || {}, used: false, expired: !!expired, at: new Date() };
+  S.links.push(l); return l;
+}
+function loadSample() {
+  if (!S.sample) {
+    const d = (day, h) => new Date(2026, 10, day, h);
+    const ana = ensureUser('ana@example.com', 'Ana'), ben = ensureUser('ben@example.com', 'Ben'), carla = ensureUser('carla@example.com', 'Carla');
+    ensureUser('dan@example.com', 'Dan');
+    const g = createGroup('Lisbon trip', 'EUR', ana.id, d(20, 9));
+    join(g, ben.id, d(20, 10)); join(g, carla.id, d(21, 8));
+    recordExpense(g, ana.id, 6000, 'Dinner at Time Out Market', ana.id, d(21, 21));
+    recordExpense(g, ben.id, 2430, 'Tram tickets', ben.id, d(22, 11));
+    recordExpense(g, carla.id, 1000, 'Pastéis de nata', ben.id, d(23, 10));
+    createGroup('Flat 4B', 'GBP', ana.id, d(25, 18));
+    S.sample = true;
+  }
+  S.session = S.users.find(u => u.email === 'ana@example.com').id;
+}
+const sampleGroup = name => S.groups.find(g => g.name === name);
+
+// ---------- variants ----------
+const VARIANTS = [{ k: 'a', name: 'One scroll' }, { k: 'b', name: 'Your balance + tabs' }, { k: 'c', name: 'Ledger as a chat' }];
+let V = (() => {
+  const q = new URLSearchParams(location.search).get('variant');
+  const h = (location.hash.match(/^#variant-([abc])$/) || [])[1];
+  return (q && /^[abc]$/.test(q) && q) || h || 'a';
+})();
+function setVariant(k) { V = k; S.ui = {}; try { history.replaceState(null, '', '#variant-' + k); } catch (e) {} render(); }
+
+// Balance wording per variant. subject: a display name, or null for "you".
+function word(bal, cur, you) {
+  const a = fmt(Math.abs(bal), cur);
+  if (V === 'b') return { text: fmt(bal, cur, true), cls: bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'zero' };
+  if (V === 'c') {
+    if (bal > 0) return { text: (you ? 'you get back ' : 'gets back ') + a, cls: 'pos' };
+    if (bal < 0) return { text: (you ? 'you owe ' : 'owes ') + a, cls: 'neg' };
+    return { text: you ? "you're square" : 'is square', cls: 'zero' };
+  }
+  if (bal > 0) return { text: (you ? "you're owed " : 'is owed ') + a, cls: 'pos' };
+  if (bal < 0) return { text: (you ? 'you owe ' : 'owes ') + a, cls: 'neg' };
+  return { text: you ? "you're even" : 'even', cls: 'zero' };
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ---------- navigation and guards ----------
+const NEEDS_AUTH = ['home', 'create', 'group', 'add'];
+function go(screen, p) {
+  S.ui = {};
+  if (NEEDS_AUTH.includes(screen) && !S.session) { S.screen = 'signin'; S.p = { dest: { screen, p } }; return render(); }
+  if (S.session && !me().name && screen !== 'name') { S.screen = 'name'; S.p = { dest: { screen, p } }; return render(); }
+  S.screen = screen; S.p = p || {}; render();
+  const sc = document.getElementById('phone'); if (sc) sc.scrollTop = 0;
+}
+function finish(dest) {
+  dest = dest || {};
+  if (dest.joinGroup) { const g = group(dest.joinGroup); join(g, S.session); return go('group', { gid: g.id }); }
+  if (dest.screen) return go(dest.screen, dest.p);
+  go('home');
+}
+function openInvite(token) {
+  const g = S.groups.find(x => x.token === token);
+  if (!g) return go('inviteBad');
+  if (!S.session) return go('inviteOut', { gid: g.id });
+  if (memberIds(g).includes(S.session)) return go('group', { gid: g.id });
+  go('inviteIn', { gid: g.id });
+}
+let toastT;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 1600); }
+function copy(text) {
+  const done = () => toast('Link copied');
+  try { navigator.clipboard.writeText(text).then(done, done); } catch (e) { done(); }
+}
+const inviteUrl = g => 'https://splitr.io/join/' + g.token;
+const signinUrl = l => 'https://splitr.io/sign-in/' + l.token;
+const day = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+// ---------- shared screens ----------
+const SCREENS = {};
+SCREENS.signin = () => {
+  const join = S.p.dest && S.p.dest.joinGroup && group(S.p.dest.joinGroup);
+  return `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>${join ? 'Sign in to join ' + esc(join.name) : 'Sign in'}</h1>
+    <p class="lede">Enter your email and we'll send you a link to sign in. There's no password.</p>
+    <form data-form="signin" novalidate>
+      <label class="field">Email<input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${esc(S.p.email || '')}"></label>
+      ${S.p.err ? `<p class="err">${esc(S.p.err)}</p>` : ''}
+      <button class="btn">Email me a sign-in link</button>
+    </form>
+    <p class="fine">New to Splitr? The same link creates your account.</p>
+  </div></div>`;
+};
+SCREENS.check = () => `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>Check your email</h1>
+    <p class="lede">We sent a sign-in link to <b>${esc(S.p.email)}</b>. Open it on this phone or any other device. It works once, for 15 minutes.</p>
+    <p class="fine">Nothing after a few minutes? Check your spam folder, or <button type="button" class="lnk inline" data-act="resend">send another link</button>.</p>
+    <div class="proto">Prototype shortcut, not part of the design:<button type="button" class="btn small" data-act="open-email">Open the email</button></div>
+  </div></div>`;
+function emailParts(l) {
+  const g = l.dest.joinGroup && group(l.dest.joinGroup);
+  const subject = g ? `Sign in to join ${g.name} on Splitr` : 'Your Splitr sign-in link';
+  const lead = g ? `Tap the button to sign in and join ${g.name}.` : 'Tap the button to sign in to Splitr.';
+  const btn = g ? `Sign in and join` : 'Sign in to Splitr';
+  const text = `${lead}\n\n${signinUrl(l)}\n\nThe link works once, for 15 minutes.\n\nDidn't ask for this? You can ignore this email. Nobody can sign in without the link.\n\nSplitr · splitr.io`;
+  return { subject, lead, btn, text };
+}
+SCREENS.email = () => {
+  const l = S.links.find(x => x.token === S.p.token); const m = emailParts(l);
+  return `<div class="mail"><div class="mail-top"><button type="button" class="lnk" data-act="back-check">‹ Inbox</button></div>
+    <div class="mail-head"><h2>${esc(m.subject)}</h2>
+      <div class="meta"><b>Splitr</b> &lt;no-reply@mail.splitr.io&gt;<br>to ${esc(l.email)}</div></div>
+    <div class="mail-body">
+      <div class="mb-brand">Splitr</div>
+      <p>${esc(m.lead)}</p>
+      <button type="button" class="mb-btn" data-act="open-link">${esc(m.btn)}</button>
+      <p class="fine">The link works once, for 15 minutes. If the button doesn't work, paste this into your browser:</p>
+      <p class="url">${esc(signinUrl(l))}</p>
+      <p class="fine">Didn't ask for this? You can ignore this email. Nobody can sign in without the link.</p>
+    </div>
+    <details><summary>Plain-text part</summary><pre>Subject: ${esc(m.subject)}\nFrom: Splitr &lt;no-reply@mail.splitr.io&gt;\n\n${esc(m.text)}</pre></details>
+  </div>`;
+};
+SCREENS.confirm = () => {
+  const l = S.links.find(x => x.token === S.p.token);
+  const g = l.dest.joinGroup && group(l.dest.joinGroup);
+  return `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>${g ? 'Sign in and join ' + esc(g.name) : 'Sign in to Splitr'}</h1>
+    <p class="lede">You're signing in as <b>${esc(l.email)}</b>.</p>
+    <button type="button" class="btn" data-act="confirm">${g ? 'Sign in and join' : 'Sign in'}</button>
+    <p class="fine">Didn't ask to sign in? Close this page. Nothing happens until you press the button.</p>
+  </div></div>`;
+};
+SCREENS.dead = () => `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>This link no longer works</h1>
+    <p class="lede">Sign-in links work once, for 15 minutes. Enter your email and we'll send you a new one.</p>
+    <form data-form="dead" novalidate>
+      <label class="field">Email<input id="f-email2" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
+      ${S.p.err ? `<p class="err">${esc(S.p.err)}</p>` : ''}
+      <button class="btn">Send a new link</button>
+    </form>
+  </div></div>`;
+SCREENS.name = () => `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>What should we call you?</h1>
+    <p class="lede">People in your groups see this name. They never see your email address.</p>
+    <form data-form="name" novalidate>
+      <label class="field">Your name<input id="f-name" name="name" maxlength="50" autocomplete="given-name" placeholder="Ana"></label>
+      ${S.p.err ? `<p class="err">${esc(S.p.err)}</p>` : ''}
+      <button class="btn">Continue</button>
+    </form>
+    <p class="fine">You can't change it yet, so pick the name your friends know you by.</p>
+  </div></div>`;
+function menuBtn() {
+  return `<button type="button" class="lnk" data-act="menu" aria-label="Menu">⋯</button>${S.ui.menu ? `<div class="menu"><div class="who">Signed in as ${esc(me().name)}<br>${esc(me().email)}</div><button type="button" data-act="signout">Sign out</button></div>` : ''}`;
+}
+SCREENS.home = () => {
+  const mine = S.groups.filter(g => memberIds(g).includes(S.session));
+  const rows = mine.map(g => {
+    const b = balances(g)[S.session]; const w = word(b, g.currency, true);
+    return `<button type="button" class="row" style="background:none;border:0;border-bottom:1px solid var(--app-line);width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer" data-act="open-group" data-gid="${g.id}">
+      <span class="l"><b>${esc(g.name)}</b><small>${g.members.length} ${g.members.length === 1 ? 'member' : 'members'} · ${g.currency}</small></span>
+      <span class="r ${w.cls}">${esc(V === 'b' ? w.text : cap(w.text))}</span></button>`;
+  }).join('');
+  return `<div class="scr"><div class="appbar"><span class="brand">Splitr</span>${menuBtn()}</div>
+    <div class="body"><h1>Your groups</h1>
+      ${mine.length ? `<div class="rows">${rows}</div>` : `<p class="empty">You're not in any groups yet. Create one, or open an invite link a friend sent you.</p>`}
+    </div>
+    <div class="foot"><button type="button" class="btn" data-act="go-create">Create a group</button></div></div>`;
+};
+SCREENS.create = () => {
+  const opts = Object.keys(CUR).map(c => `<option value="${c}" ${S.p.cur === c ? 'selected' : ''}>${c} · ${esc(curName(c))}</option>`).join('');
+  return `<div class="scr"><div class="appbar"><button type="button" class="lnk" data-act="go-home">‹ Groups</button><span></span></div>
+    <div class="body"><h1>Create a group</h1>
+    <form data-form="create" novalidate>
+      <label class="field">Group name<input id="f-gname" name="gname" maxlength="50" placeholder="Lisbon trip" value="${esc(S.p.gname || '')}"></label>
+      <label class="field">Currency<select id="f-cur" name="cur"><option value="" ${S.p.cur ? '' : 'selected'} disabled>Choose a currency</option>${opts}</select>
+        <span class="help">Every expense in this group is in this currency. You can't change it later.</span></label>
+      ${S.p.err ? `<p class="err">${esc(S.p.err)}</p>` : ''}
+      <button class="btn">Create group</button>
+    </form>
+    <p class="fine">Prototype lists 6 currencies; the real list has every active ISO 4217 currency.</p></div></div>`;
+};
+SCREENS.inviteOut = () => {
+  const g = group(S.p.gid);
+  return `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <p class="fine">You've been invited to a group</p>
+    <h1>Sign in to join ${esc(g.name)}</h1>
+    <p class="lede">Enter your email and we'll send you a link. Once you sign in, you're in the group.</p>
+    <form data-form="inviteOut" novalidate>
+      <label class="field">Email<input id="f-email3" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></label>
+      ${S.p.err ? `<p class="err">${esc(S.p.err)}</p>` : ''}
+      <button class="btn">Email me a sign-in link</button>
+    </form>
+  </div></div>`;
+};
+SCREENS.inviteIn = () => {
+  const g = group(S.p.gid);
+  return `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <p class="fine">You've been invited to a group</p>
+    <h1>Join ${esc(g.name)}</h1>
+    <p class="lede">You'll join as <b>${esc(me().name)}</b>. Everyone in ${esc(g.name)} will see your name and the expenses you add.</p>
+    <button type="button" class="btn" data-act="join">Join ${esc(g.name)}</button>
+    <p class="fine">Not you? <button type="button" class="lnk inline" data-act="signout-invite">Sign out</button></p>
+  </div></div>`;
+};
+SCREENS.inviteBad = () => `<div class="scr auth"><div class="body">
+    <div class="brand">Splitr</div>
+    <h1>This invite link isn't valid</h1>
+    <p class="lede">Check you copied the whole link, or ask someone in the group to send it again.</p>
+    <button type="button" class="btn ghost" data-act="go-home">Go to Splitr</button>
+  </div></div>`;
+
+// ---------- group pieces ----------
+function shareLines(e) {
+  return memberIds(group(e.groupId)).filter(u => u in e.shares).map(u => `<div class="line"><span>${esc(nameOf(u))}</span><span>${fmt(e.shares[u], e.currency)}</span></div>`).join('');
+}
+function shareSummary(e) {
+  const vals = Object.values(e.shares); const n = vals.length;
+  if (n === 1) return 'only member, whole amount';
+  const min = Math.min(...vals), max = Math.max(...vals);
+  if (min === max) return `${fmt(min, e.currency)} each for ${n}`;
+  return `${fmt(min, e.currency)}–${fmt(max, e.currency)} each for ${n}`;
+}
+function expRow(e) {
+  const by = e.recordedBy !== e.payer ? ` · added by ${esc(nameOf(e.recordedBy))}` : '';
+  return `<details class="exp"><summary class="row"><span class="l">${esc(e.description)}<small>${esc(nameOf(e.payer))} paid · ${day(e.at)}${by}</small></span><span class="r">${fmt(e.amount, e.currency)}</span></summary>
+    <div class="shares">${shareLines(e)}</div></details>`;
+}
+function inviteBox(g) {
+  return `<div class="linkbox"><code>splitr.io/join/${esc(g.token)}</code><button type="button" class="btn small" data-act="copy" data-gid="${g.id}">Copy</button></div>`;
+}
+function previewHtml(g, amountStr, payer) {
+  const r = parseAmount(amountStr, g.currency);
+  const n = g.members.length;
+  if (!String(amountStr || '').trim()) return `<div class="h">Split equally between all ${n} ${n === 1 ? 'member' : 'members'}</div><div class="fine">Type an amount to see each share.</div>`;
+  if (r.error) return `<div class="err">${esc(r.error)}</div>`;
+  const sh = equalSplit(r.minor, payer, memberIds(g));
+  return `<div class="h">Split equally between all ${n}</div>` + memberIds(g).map(u => `<div class="line"><span>${esc(nameOf(u))}${u === payer ? ' (paid)' : ''}</span><span>${fmt(sh[u], g.currency)}</span></div>`).join('');
+}
+function expenseFields(g, style) {
+  const payerChoice = style === 'chips'
+    ? `<div class="field">Who paid?<div class="chips">${memberIds(g).map(u => `<label><input type="radio" name="payer" value="${u}" ${u === S.session ? 'checked' : ''}><span>${u === S.session ? 'You' : esc(nameOf(u))}</span></label>`).join('')}</div></div>`
+    : `<div class="field">Who paid?<div class="choices">${memberIds(g).map(u => `<label><input type="radio" name="payer" value="${u}" ${u === S.session ? 'checked' : ''}>${esc(nameOf(u))}${u === S.session ? ' (you)' : ''}</label>`).join('')}</div></div>`;
+  return `<label class="field">Amount<div class="amount-in"><span>${g.currency}</span><input id="f-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="${CUR[g.currency] ? '0.' + '0'.repeat(CUR[g.currency]) : '0'}"></div></label>
+    <label class="field">What was it for?<input id="f-desc" name="desc" maxlength="100" placeholder="Dinner at Time Out Market"></label>
+    ${payerChoice}
+    <div class="preview" id="preview">${previewHtml(g, '', S.session)}</div>
+    <p class="err" id="exp-err" hidden></p>`;
+}
+
+// ---------- Variant A: one scroll ----------
+function groupA(g) {
+  const b = balances(g); const exps = ledger(g).slice().reverse(); const solo = g.members.length === 1;
+  const invite = solo
+    ? `<div class="card hot"><b>Only you so far</b><span class="fine">Send this link to your group chat. Anyone who opens it can join ${esc(g.name)}.</span>${inviteBox(g)}</div>`
+    : `<div class="sec"><h2>Invite people</h2>${inviteBox(g)}<span class="fine">Anyone with this link can join.</span></div>`;
+  const bal = `<div class="sec"><h2>Balances</h2><div class="rows">${memberIds(g).map(u => { const w = word(b[u], g.currency, false); return `<div class="row"><span class="l">${esc(nameOf(u))}${u === S.session ? ' (you)' : ''}</span><span class="r ${w.cls}">${esc(w.text)}</span></div>`; }).join('')}</div></div>`;
+  const ex = `<div class="sec"><h2>Expenses</h2>${exps.length ? `<div class="rows">${exps.map(expRow).join('')}</div><span class="fine">Tap an expense to see each share.</span>` : `<p class="empty">No expenses yet. Add the first thing someone paid for.</p>`}</div>`;
+  return `<div class="scr"><div class="appbar"><button type="button" class="lnk" data-act="go-home">‹ Groups</button>${menuBtn()}</div>
+    <div class="body"><div><h1>${esc(g.name)}</h1><p class="fine">${g.currency} · ${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</p></div>
+    ${solo ? invite + ex : bal + ex + invite}</div>
+    <div class="foot"><button type="button" class="btn" data-act="go-add" data-gid="${g.id}">Add an expense</button></div></div>`;
+}
+function addA(g) {
+  return `<div class="scr"><div class="appbar"><button type="button" class="lnk" data-act="open-group" data-gid="${g.id}">Cancel</button><span class="t">${esc(g.name)}</span><span style="width:50px"></span></div>
+    <div class="body"><h1>Add an expense</h1>
+    <form data-form="expense" data-gid="${g.id}" novalidate>${expenseFields(g, 'radios')}<button class="btn">Add expense</button></form></div></div>`;
+}
+
+// ---------- Variant B: your balance + tabs ----------
+function groupB(g, sheet) {
+  const b = balances(g); const mine = b[S.session]; const solo = g.members.length === 1;
+  const tab = S.ui.tab || (solo ? 'people' : 'expenses');
+  const hero = mine > 0 ? 'The group owes you' : mine < 0 ? 'You owe the group' : ledger(g).length ? "You're even" : 'Nothing spent yet';
+  let content = '';
+  if (tab === 'expenses') { const exps = ledger(g).slice().reverse(); content = exps.length ? `<div class="rows">${exps.map(expRow).join('')}</div>` : `<p class="empty">No expenses yet. Tap + to add the first one.</p>`; }
+  if (tab === 'balances') content = `<div class="rows">${memberIds(g).map(u => { const w = word(b[u], g.currency); return `<div class="row"><span class="l">${esc(nameOf(u))}${u === S.session ? ' (you)' : ''}</span><span class="r ${w.cls}">${esc(w.text)}</span></div>`; }).join('')}</div><span class="fine">+ means the group owes them, − means they owe the group. Balances add up to zero.</span>`;
+  if (tab === 'people') content = `<div class="card ${solo ? 'hot' : ''}"><b>${solo ? 'Only you so far' : 'Invite people'}</b><span class="fine">Anyone who opens this link can join ${esc(g.name)}.</span>${inviteBox(g)}</div>
+    <div class="rows">${g.members.map((m, i) => `<div class="row"><span class="l">${esc(nameOf(m.uid))}${m.uid === S.session ? ' (you)' : ''}<small>${i === 0 ? 'Created the group' : 'Joined'} ${day(m.at)}</small></span></div>`).join('')}</div>`;
+  const t = (k, l) => `<button type="button" role="tab" aria-selected="${tab === k}" data-act="tab" data-tab="${k}">${l}</button>`;
+  const sh = sheet ? `<div class="sheet-wrap" data-act="sheet-bg" data-gid="${g.id}"><div class="sheet" role="dialog" aria-label="Add an expense"><div class="grab"></div><h2>Add an expense</h2>
+      <form data-form="expense" data-gid="${g.id}" novalidate>${expenseFields(g, 'chips')}<button class="btn">Add expense</button></form>
+      <button type="button" class="lnk" data-act="open-group" data-gid="${g.id}">Cancel</button></div></div>` : '';
+  return `<div class="scr"><div class="appbar"><button type="button" class="lnk" data-act="go-home">‹ Groups</button><span class="t">${esc(g.name)}</span>${menuBtn()}</div>
+    <div class="hero"><span class="k">Your balance · ${g.currency}</span><span class="big ${mine > 0 ? 'pos' : mine < 0 ? 'neg' : 'zero'}">${fmt(mine, g.currency, true)}</span><span class="s">${hero}</span></div>
+    <div class="tabs" role="tablist">${t('expenses', 'Expenses')}${t('balances', 'Balances')}${t('people', `People (${g.members.length})`)}</div>
+    <div class="body" style="padding-top:12px">${content}</div>
+    <button type="button" class="fab" data-act="go-add" data-gid="${g.id}" aria-label="Add an expense">+</button>${sh}</div>`;
+}
+
+// ---------- Variant C: ledger as a chat ----------
+function groupC(g) {
+  const b = balances(g); const solo = g.members.length === 1;
+  const items = [{ at: g.createdAt, html: `<div class="sys">${esc(nameOf(g.members[0].uid))} created ${esc(g.name)} · ${g.currency}</div>` }]
+    .concat(g.members.slice(1).map(m => ({ at: m.at, html: `<div class="sys">${esc(nameOf(m.uid))} joined · ${day(m.at)}</div>` })))
+    .concat(ledger(g).map(e => ({ at: e.at, html: `<details class="bub ${e.payer === S.session ? 'me' : ''}"><summary style="list-style:none;cursor:pointer"><div class="who">${e.payer === S.session ? 'You' : esc(nameOf(e.payer))} paid · ${day(e.at)}${e.recordedBy !== e.payer ? ', added by ' + esc(nameOf(e.recordedBy)) : ''}</div><div class="amt">${fmt(e.amount, e.currency)}</div><div>${esc(e.description)}</div><div class="sh">${shareSummary(e)}</div></summary><div class="sh" style="margin-top:6px">${shareLines(e).replace(/<div class="line">/g, '<div style="display:flex;justify-content:space-between;gap:12px">')}</div></details>` })))
+    .sort((x, y) => x.at - y.at);
+  const pinned = solo ? `<div class="card hot" style="align-self:stretch"><b>Only you so far</b><span class="fine">Send this link to your group chat. Anyone who opens it can join.</span>${inviteBox(g)}</div>` : '';
+  const noExp = !ledger(g).length ? `<div class="sys">No expenses yet. Add the first one below.</div>` : '';
+  const chips = memberIds(g).map(u => { const w = word(b[u], g.currency, u === S.session); return `<span class="chip"><b>${u === S.session ? 'You' : esc(nameOf(u))}</b> <span class="${w.cls}">${esc(u === S.session ? w.text.replace(/^you('re)? /, '') : w.text)}</span></span>`; }).join('');
+  const payerOpts = memberIds(g).map(u => `<option value="${u}" ${u === S.session ? 'selected' : ''}>Paid by ${u === S.session ? 'you' : esc(nameOf(u))}</option>`).join('');
+  const info = S.ui.info ? `<div class="sheet-wrap" data-act="info-bg"><div class="sheet" role="dialog" aria-label="Group info"><div class="grab"></div><h2>${esc(g.name)}</h2>
+      <span class="fine">${g.currency} · ${esc(curName(g.currency))}</span>
+      <div class="sec"><h2>Invite people</h2>${inviteBox(g)}<span class="fine">Anyone with this link can join.</span></div>
+      <div class="sec"><h2>Members, in join order</h2><div class="rows">${g.members.map(m => `<div class="row"><span class="l">${esc(nameOf(m.uid))}${m.uid === S.session ? ' (you)' : ''}</span><span class="r fine">${day(m.at)}</span></div>`).join('')}</div></div>
+      <button type="button" class="btn ghost" data-act="signout">Sign out (${esc(me().name)})</button>
+      <button type="button" class="lnk" data-act="info-close">Close</button></div></div>` : '';
+  return `<div class="c-scr"><div class="c-head"><button type="button" class="lnk" data-act="go-home" aria-label="Back to groups">‹</button>
+      <button type="button" class="ttl" data-act="info"><b>${esc(g.name)}</b><small>${g.members.length} ${g.members.length === 1 ? 'member' : 'members'} · tap for invite link</small></button></div>
+    <div class="strip">${chips}</div>
+    <div class="feed" id="feed">${pinned}${items.map(i => i.html).join('')}${noExp}</div>
+    <form class="composer" data-form="expense" data-gid="${g.id}" novalidate>
+      <div class="pv" id="preview">Split equally between all ${g.members.length}</div>
+      <p class="err" id="exp-err" hidden></p>
+      <div class="r1"><span class="cur">${g.currency}</span><input class="a" id="f-amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount"><input class="d" id="f-desc" name="desc" maxlength="100" placeholder="What for?" aria-label="What was it for?"></div>
+      <div class="r2"><select id="f-payer" name="payer" aria-label="Who paid">${payerOpts}</select><button class="btn small">Add</button></div>
+    </form>${info}</div>`;
+}
+
+SCREENS.group = () => { const g = group(S.p.gid); return V === 'a' ? groupA(g) : V === 'b' ? groupB(g, false) : groupC(g); };
+SCREENS.add = () => { const g = group(S.p.gid); return V === 'a' ? addA(g) : V === 'b' ? groupB(g, true) : groupC(g); };
+
+// ---------- render ----------
+const INDEX = [
+  ['Signing in'], ['signin', 'Sign in'], ['check', 'Check your email'], ['email', 'The sign-in email'], ['confirm', 'Confirm sign-in'], ['dead', 'Dead sign-in link'], ['name', 'Display name step'],
+  ['Groups'], ['home', 'Home: your groups'], ['create', 'Create a group'], ['group1', 'Group: only you, no expenses'], ['group', 'Group: three members'], ['add', 'Add an expense'],
+  ['Joining'], ['inviteOut', 'Invite, signed out'], ['inviteIn', 'Invite, signed in'], ['inviteBad', 'Invalid invite link']
+];
+function currentIndexKey() {
+  if (S.screen === 'group') { const g = group(S.p.gid); return g && g.members.length === 1 && !ledger(g).length ? 'group1' : 'group'; }
+  return S.screen;
+}
+function render() {
+  const sc = document.getElementById('phone');
+  const fs = SCREENS[S.screen]; sc.innerHTML = fs ? fs() : '';
+  sc.querySelector('.scr, .c-scr, .mail') && sc.querySelector('.c-scr') ? sc.style.overflowY = 'hidden' : sc.style.overflowY = 'auto';
+  const feed = document.getElementById('feed'); if (feed) feed.scrollTop = feed.scrollHeight;
+  const cur = currentIndexKey();
+  document.getElementById('idx').innerHTML = INDEX.map(([k, l]) => l ? `<li><button type="button" data-act="jump" data-k="${k}" aria-current="${k === cur}">${l}</button></li>` : `<li class="grp">${k}</li>`).join('');
+  const vi = VARIANTS.findIndex(v => v.k === V);
+  document.getElementById('vlabel').textContent = `${V.toUpperCase()} · ${VARIANTS[vi].name}  (${vi + 1}/${VARIANTS.length})`;
+  renderState();
+  if (S.screen === 'add' && V === 'c') { const a = document.getElementById('f-amount'); a && a.focus(); }
+}
+function renderState() {
+  const m = me();
+  const out = [`variant: ${V} (${VARIANTS.find(v => v.k === V).name})`, `screen: ${S.screen}${S.p.gid ? ' ' + (group(S.p.gid) || {}).name : ''}`, `session: ${m ? `${m.name || '(no name yet)'} <${m.email}>` : 'signed out'}`, ''];
+  S.groups.forEach(g => {
+    const b = balances(g);
+    out.push(`group "${g.name}" ${g.currency}  invite /join/${g.token}`);
+    out.push('  join order: ' + g.members.map((x, i) => `${i + 1}.${nameOf(x.uid)}`).join(' '));
+    ledger(g).forEach((e, i) => out.push(`  entry ${i + 1} expense: ${nameOf(e.payer)} paid ${e.amount} ${e.currency} "${e.description}"\n    shares ${Object.entries(e.shares).map(([u, v]) => nameOf(u) + ' ' + v).join(', ')}`));
+    out.push('  balances (minor units): ' + memberIds(g).map(u => `${nameOf(u)} ${b[u]}`).join(', '));
+    out.push('');
+  });
+  if (S.links.length) { out.push('sign-in links:'); S.links.slice(-4).forEach(l => out.push(`  ${l.token.slice(0, 8)}… ${l.email} ${l.used ? 'used' : l.expired ? 'expired' : 'live'}${l.dest.joinGroup ? ' → join ' + group(l.dest.joinGroup).name : ''}`)); }
+  document.getElementById('state').textContent = out.join('\n') || 'empty';
+}
+
+// ---------- events ----------
+function jump(k) {
+  S.ui = {};
+  const anyLink = dest => newLink('ana@example.com', dest || {});
+  switch (k) {
+    case 'signin': S.session = null; S.screen = 'signin'; S.p = {}; return render();
+    case 'check': S.session = null; { const l = anyLink(); S.p = { email: l.email, token: l.token }; } S.screen = 'check'; return render();
+    case 'email': S.session = null; { const l = anyLink(); S.p = { token: l.token, email: l.email }; } S.screen = 'email'; return render();
+    case 'confirm': S.session = null; { const l = anyLink(); S.p = { token: l.token, email: l.email }; } S.screen = 'confirm'; return render();
+    case 'dead': S.screen = 'dead'; S.p = {}; return render();
+    case 'name': { const u = ensureUser('new' + seq + '@example.com', ''); S.session = u.id; S.screen = 'name'; S.p = {}; return render(); }
+    case 'home': loadSample(); return go('home');
+    case 'create': loadSample(); return go('create');
+    case 'group1': loadSample(); return go('group', { gid: sampleGroup('Flat 4B').id });
+    case 'group': loadSample(); return go('group', { gid: sampleGroup('Lisbon trip').id });
+    case 'add': loadSample(); return go('add', { gid: sampleGroup('Lisbon trip').id });
+    case 'inviteOut': loadSample(); S.session = null; return openInvite(sampleGroup('Lisbon trip').token);
+    case 'inviteIn': loadSample(); S.session = S.users.find(u => u.email === 'dan@example.com').id; { const g = sampleGroup('Lisbon trip'); g.members = g.members.filter(m => m.uid !== S.session); } return openInvite(sampleGroup('Lisbon trip').token);
+    case 'inviteBad': S.screen = 'inviteBad'; S.p = {}; return render();
+  }
+}
+const validEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  const a = el.dataset.act;
+  if ((a === 'sheet-bg' || a === 'info-bg') && ev.target !== el) return;
+  const gid = el.dataset.gid;
+  switch (a) {
+    case 'v-prev': case 'v-next': { const i = VARIANTS.findIndex(v => v.k === V); const n = VARIANTS.length; return setVariant(VARIANTS[(i + (a === 'v-next' ? 1 : n - 1)) % n].k); }
+    case 'jump': return jump(el.dataset.k);
+    case 'scn-invite': { if (!S.sample) { loadSample(); S.session = null; } return openInvite(sampleGroup('Lisbon trip').token); }
+    case 'scn-signout': case 'signout': S.session = null; return go('signin');
+    case 'signout-invite': S.session = null; return go('inviteOut', S.p);
+    case 'scn-dead': { const l = newLink('ana@example.com', {}, true); S.screen = 'dead'; S.p = { token: l.token }; S.ui = {}; return render(); }
+    case 'scn-reset': S = fresh(); return render();
+    case 'resend': { const l = S.links.find(x => x.token === S.p.token); const n = newLink(l.email, l.dest); S.p = { email: n.email, token: n.token }; toast('Sent another link'); return render(); }
+    case 'open-email': S.screen = 'email'; return render();
+    case 'back-check': S.screen = 'check'; return render();
+    case 'open-link': { const l = S.links.find(x => x.token === S.p.token); if (l.used || l.expired) { S.screen = 'dead'; S.p = { token: l.token }; } else { S.screen = 'confirm'; } return render(); }
+    case 'confirm': {
+      const l = S.links.find(x => x.token === S.p.token);
+      if (l.used || l.expired) { S.screen = 'dead'; S.p = { token: l.token }; return render(); }
+      l.used = true; const u = ensureUser(l.email, ''); S.session = u.id;
+      if (!u.name) { S.screen = 'name'; S.p = { dest: l.dest }; S.ui = {}; return render(); }
+      return finish(l.dest);
+    }
+    case 'menu': S.ui.menu = !S.ui.menu; return render();
+    case 'go-home': return go('home');
+    case 'go-create': return go('create');
+    case 'open-group': return go('group', { gid });
+    case 'go-add': return go('add', { gid });
+    case 'copy': return copy(inviteUrl(group(gid)));
+    case 'join': { const g = group(S.p.gid); join(g, S.session); return go('group', { gid: g.id }); }
+    case 'tab': S.ui.tab = el.dataset.tab; return render();
+    case 'sheet-bg': return go('group', { gid });
+    case 'info': S.ui.info = true; return render();
+    case 'info-close': case 'info-bg': S.ui.info = false; return render();
+  }
+});
+document.addEventListener('submit', ev => {
+  const f = ev.target; if (!f.dataset.form) return; ev.preventDefault();
+  const fd = new FormData(f); const k = f.dataset.form;
+  if (k === 'signin' || k === 'dead' || k === 'inviteOut') {
+    const email = String(fd.get('email') || '').trim().toLowerCase();
+    if (!validEmail(email)) { S.p = Object.assign({}, S.p, { err: 'Enter an email address, like ana@example.com.' }); return render(); }
+    let dest = {};
+    if (k === 'signin') dest = S.p.dest || {};
+    if (k === 'inviteOut') dest = { joinGroup: S.p.gid };
+    if (k === 'dead') { const old = S.links.find(x => x.token === S.p.token); dest = old ? old.dest : {}; }
+    const l = newLink(email, dest); S.screen = 'check'; S.p = { email, token: l.token }; return render();
+  }
+  if (k === 'name') {
+    const n = String(fd.get('name') || '').trim();
+    if (!n) { S.p = Object.assign({}, S.p, { err: 'Enter a name.' }); return render(); }
+    me().name = n.slice(0, 50); return finish(S.p.dest);
+  }
+  if (k === 'create') {
+    const name = String(fd.get('gname') || '').trim(); const cur = fd.get('cur');
+    if (!name || !cur) { S.p = { gname: name, cur, err: !name ? 'Give the group a name.' : 'Choose a currency.' }; return render(); }
+    const g = createGroup(name.slice(0, 50), cur, S.session); return go('group', { gid: g.id });
+  }
+  if (k === 'expense') {
+    const g = group(f.dataset.gid); const r = parseAmount(fd.get('amount'), g.currency); const desc = String(fd.get('desc') || '').trim();
+    const err = r.error || (!desc ? 'Say what it was for.' : '');
+    if (err) { const e = document.getElementById('exp-err'); e.textContent = err; e.hidden = false; return; }
+    recordExpense(g, fd.get('payer') || S.session, r.minor, desc.slice(0, 100), S.session);
+    toast('Expense added'); S.ui = {}; S.screen = 'group'; S.p = { gid: g.id };
+    if (V === 'b') S.ui.tab = 'expenses';
+    render();
+  }
+});
+document.addEventListener('input', ev => {
+  const f = ev.target.closest('form[data-form="expense"]'); if (!f) return;
+  const g = group(f.dataset.gid); const fd = new FormData(f);
+  const pv = document.getElementById('preview'); const amt = fd.get('amount');
+  const e = document.getElementById('exp-err'); if (e) e.hidden = true;
+  if (V === 'c') {
+    const r = parseAmount(amt, g.currency);
+    if (!String(amt || '').trim()) pv.textContent = `Split equally between all ${g.members.length}`;
+    else if (r.error) pv.innerHTML = `<span class="err">${esc(r.error)}</span>`;
+    else { const sh = equalSplit(r.minor, fd.get('payer'), memberIds(g)); pv.textContent = 'Shares: ' + memberIds(g).map(u => `${u === S.session ? 'you' : nameOf(u)} ${fmt(sh[u], g.currency)}`).join(' · '); }
+    return;
+  }
+  pv.innerHTML = previewHtml(g, amt, fd.get('payer') || S.session);
+});
+document.addEventListener('change', ev => { if (ev.target.name === 'payer') ev.target.dispatchEvent(new Event('input', { bubbles: true })); });
+document.addEventListener('keydown', ev => {
+  const t = ev.target; if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+  if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') { const i = VARIANTS.findIndex(v => v.k === V); const n = VARIANTS.length; setVariant(VARIANTS[(i + (ev.key === 'ArrowRight' ? 1 : n - 1)) % n].k); }
+});
+window.addEventListener('hashchange', () => { const h = (location.hash.match(/^#variant-([abc])$/) || [])[1]; if (h && h !== V) { V = h; S.ui = {}; render(); } });
+
+render();
+})();
+</script>
