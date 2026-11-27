@@ -14,6 +14,14 @@ _Avoid_: Account, person
 The name a user gives for themselves, shown to the other members of every group they are in. Their email address is never shown to other members.
 _Avoid_: Username, nickname, full name
 
+**Sign-in link**:
+A link emailed to an address that, when the person holding the mailbox confirms it, signs them in as the user with that address, creating the user if there is none. It works once and for a short time.
+_Avoid_: Magic link, login link, verification link
+
+**Session**:
+One browser's signed-in state for one user, begun by a sign-in link and ended by signing out or by a long time unused.
+_Avoid_: Login, token
+
 **Group**:
 A set of members who share expenses in one currency. It has a name, one invite link and one ledger, and no owner.
 _Avoid_: Team, circle, household
