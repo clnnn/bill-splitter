@@ -1,5 +1,5 @@
 {
-  "name": "Playbook",
+  "name": "Bill Splitter",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
