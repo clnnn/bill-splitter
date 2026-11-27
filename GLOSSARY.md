@@ -22,6 +22,10 @@ _Avoid_: Team, circle, household
 A user's membership of one group. One user in two groups is two members.
 _Avoid_: Participant, friend
 
+**Join order**:
+The order in which a group's members joined it, the user who created the group first. It never changes as the group grows.
+_Avoid_: Member order, seniority
+
 **Invite link**:
 The one link belonging to a group that lets any user who opens it become a member.
 _Avoid_: Invitation, join link, share link
@@ -51,6 +55,10 @@ _Avoid_: Total, price, cost
 **Share**:
 The part of an expense's amount that one member is responsible for, fixed when the expense is recorded. The payer has a share too, and an expense's shares add up to exactly its amount.
 _Avoid_: Split, portion, cut
+
+**Equal split**:
+The way an expense's amount is divided into shares that differ by at most one minor unit. Every member gets the amount divided by the number of members, rounded down; the minor units left over go one each to the payer first, then to the other members in join order.
+_Avoid_: Even split, fair split
 
 **Balance**:
 What a member has paid minus the total of their shares, across the whole ledger. Positive means the group owes them, negative means they owe the group, and a group's balances add up to zero.
