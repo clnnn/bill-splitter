@@ -51,6 +51,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 .idx button { width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px; border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; }
 .idx button:hover { background: var(--app-soft); }
 .idx button[aria-current="true"] { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.idx .vtag { font: 600 10px/1 var(--f-body); color: var(--accent); background: var(--accent-soft); padding: 2px 6px; border-radius: 999px; margin-left: 4px; vertical-align: 1px; }
 .idx .grp { font: 600 11px/1 var(--f-body); color: var(--muted); padding: 10px 8px 4px; letter-spacing: .05em; text-transform: uppercase; }
 .scen { display: grid; gap: 6px; }
 .scen button { text-align: left; font: inherit; padding: 7px 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; }
@@ -191,7 +192,7 @@ details.exp .shares { padding: 0 0 10px; color: var(--muted); font-size: 13px; d
   <header class="intro">
     <span class="eyebrow">Prototype · throwaway · state lives in memory, reload resets</span>
     <h1>What do the core screens look like?</h1>
-    <p>Phone-first screens for split-a-bill-equally. Click through the flow inside the phone, or jump to any screen from the list. Three variants of the group page and the add-expense step switch from the bar at the bottom (or the ← → keys). Sign-in, email, invite and home screens are the same in every variant.</p>
+    <p>Phone-first screens for split-a-bill-equally. Three variants of <b>the group page and adding an expense</b> switch from the bar at the bottom (or the ← → keys); screens tagged A/B/C in the list are the ones that change. Sign-in, email, create and invite screens are the same in every variant. Click through the flow inside the phone, or jump to any screen from the list.</p>
   </header>
   <div class="stage">
     <aside class="panel" aria-label="Screens">
@@ -326,7 +327,12 @@ let V = (() => {
   const h = (location.hash.match(/^#variant-([abc])$/) || [])[1];
   return (q && /^[abc]$/.test(q) && q) || h || 'a';
 })();
-function setVariant(k) { V = k; S.ui = {}; try { history.replaceState(null, '', '#variant-' + k); } catch (e) {} render(); }
+function setVariant(k) {
+  V = k; S.ui = {}; try { history.replaceState(null, '', '#variant-' + k); } catch (e) {}
+  if (!VARIES.includes(S.screen)) { loadSample(); S.screen = 'group'; S.p = { gid: sampleGroup('Lisbon trip').id }; render(); return toast('Variants differ on the group page and adding an expense'); }
+  render();
+}
+const VARIES = ['group', 'add', 'home'];
 
 // Balance wording per variant. subject: a display name, or null for "you".
 function word(bal, cur, you) {
@@ -642,7 +648,8 @@ function render() {
   sc.querySelector('.scr, .c-scr, .mail') && sc.querySelector('.c-scr') ? sc.style.overflowY = 'hidden' : sc.style.overflowY = 'auto';
   const feed = document.getElementById('feed'); if (feed) feed.scrollTop = feed.scrollHeight;
   const cur = currentIndexKey();
-  document.getElementById('idx').innerHTML = INDEX.map(([k, l]) => l ? `<li><button type="button" data-act="jump" data-k="${k}" aria-current="${k === cur}">${l}</button></li>` : `<li class="grp">${k}</li>`).join('');
+  const VK = { home: 'wording', group1: 'A/B/C', group: 'A/B/C', add: 'A/B/C' };
+  document.getElementById('idx').innerHTML = INDEX.map(([k, l]) => l ? `<li><button type="button" data-act="jump" data-k="${k}" aria-current="${k === cur}">${l}${VK[k] ? ` <span class="vtag">${VK[k]}</span>` : ''}</button></li>` : `<li class="grp">${k}</li>`).join('');
   const vi = VARIANTS.findIndex(v => v.k === V);
   document.getElementById('vlabel').textContent = `${V.toUpperCase()} · ${VARIANTS[vi].name}  (${vi + 1}/${VARIANTS.length})`;
   renderState();
@@ -775,6 +782,7 @@ document.addEventListener('keydown', ev => {
 });
 window.addEventListener('hashchange', () => { const h = (location.hash.match(/^#variant-([abc])$/) || [])[1]; if (h && h !== V) { V = h; S.ui = {}; render(); } });
 
+loadSample(); S.screen = 'group'; S.p = { gid: sampleGroup('Lisbon trip').id };
 render();
 })();
 </script>
