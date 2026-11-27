@@ -1,0 +1,13 @@
+{
+  "effortLevel": "high",
+  "theme": "dark",
+  "autoMemoryEnabled": false,
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 0
+  }
+}
