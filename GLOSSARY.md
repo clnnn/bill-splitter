@@ -30,6 +30,16 @@ _Avoid_: Member order, seniority
 The one link belonging to a group that lets any user who opens it become a member.
 _Avoid_: Invitation, join link, share link
 
+### Money
+
+**Currency**:
+The one ISO 4217 currency that all of a group's amounts are in, chosen when the group is created and never changed.
+_Avoid_: Denomination, money type
+
+**Minor unit**:
+The smallest unit of a currency (a cent, a yen, a fils). Every amount, share and balance is a whole number of minor units.
+_Avoid_: Cent, subunit, penny
+
 ### Ledger
 
 **Ledger**:
